@@ -17,9 +17,17 @@ charge des `LayerFolder`).
    | Folder | Dossier Racine |             |
    | Tag    | Murs           |             |
 
-2. **Modifier** — Ouvrez le CSV dans un tableur, remplissez la colonne
-   *Nouveau Nom* pour les éléments à renommer (laissez vide pour conserver
-   le nom actuel), puis sauvegardez.
+2. **Modifier** — Ouvrez le CSV dans un tableur et remplissez **uniquement
+   la colonne *Nouveau Nom*** pour les éléments à renommer (laissez vide
+   pour conserver le nom actuel), puis sauvegardez.
+
+   > ⚠️ Ne modifiez jamais la colonne *Nom Actuel* : c'est elle qui permet
+   > au plugin de retrouver chaque élément dans le modèle. Ne supprimez et
+   > n'ajoutez aucune ligne.
+
+   L'import accepte les fichiers réenregistrés par Excel aussi bien en
+   UTF-8 qu'en ANSI (Windows-1252), le format par défaut d'Excel pour
+   « CSV (séparateur : point-virgule) ».
 
 3. **Importer** — Le plugin relit le fichier et applique les nouveaux noms.
    La structure des dossiers et les assignations géométriques sont
@@ -49,6 +57,9 @@ charge des `LayerFolder`).
   supprimés automatiquement.
 - **Annulation utilisateur** : fermer une boîte de dialogue de fichier
   interrompt l'action silencieusement.
+- **Encodage** : détection automatique UTF-8 (avec ou sans BOM) ou ANSI
+  (Windows-1252) à l'import — compatible avec un fichier réenregistré
+  par Excel sans option particulière.
 
 ## Structure du dépôt
 

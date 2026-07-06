@@ -139,13 +139,29 @@ module Tenrev
         log(dialog, "Erreur lors de l'import : #{e.message}", :error)
       end
 
-      # Lit le CSV en UTF-8 (avec ou sans BOM) et ignore les lignes vides.
+      # Lit le CSV et ignore les lignes vides.
       # liberal_parsing tolère les guillemets irréguliers produits par
       # certains tableurs lors de l'édition manuelle.
       def read_csv_rows(path)
-        rows = CSV.read(path, col_sep: CSV_SEPARATOR, encoding: 'bom|utf-8',
-                              liberal_parsing: true)
+        content = decode_csv(File.binread(path))
+        rows = CSV.parse(content, col_sep: CSV_SEPARATOR,
+                                  liberal_parsing: true)
         rows.reject { |row| row.nil? || row.compact.map(&:to_s).all?(&:empty?) }
+      end
+
+      # Excel (« CSV (séparateur : point-virgule) ») réenregistre souvent le
+      # fichier en ANSI (Windows-1252) au lieu d'UTF-8, ce qui rend les
+      # caractères accentués invalides en UTF-8. On retire un éventuel BOM,
+      # on tente l'UTF-8, sinon on retombe sur Windows-1252.
+      UTF8_BOM = "\xEF\xBB\xBF".dup.force_encoding(Encoding::ASCII_8BIT).freeze
+
+      def decode_csv(raw)
+        body = raw.start_with?(UTF8_BOM) ? raw.byteslice(3, raw.bytesize - 3) : raw
+        utf8 = body.dup.force_encoding(Encoding::UTF_8)
+        return utf8 if utf8.valid_encoding?
+
+        body.encode(Encoding::UTF_8, Encoding::WINDOWS_1252,
+                    invalid: :replace, undef: :replace, replace: '?')
       end
 
       def header_row?(row)
