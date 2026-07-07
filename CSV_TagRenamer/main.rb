@@ -144,18 +144,45 @@ module Tenrev
       # certains tableurs lors de l'édition manuelle.
       def read_csv_rows(path)
         content = decode_csv(File.binread(path))
-        rows = CSV.parse(content, col_sep: CSV_SEPARATOR,
+        rows = CSV.parse(content, col_sep: detect_separator(content),
                                   liberal_parsing: true)
         rows.reject { |row| row.nil? || row.compact.map(&:to_s).all?(&:empty?) }
       end
 
-      # Excel (« CSV (séparateur : point-virgule) ») réenregistre souvent le
-      # fichier en ANSI (Windows-1252) au lieu d'UTF-8, ce qui rend les
-      # caractères accentués invalides en UTF-8. On retire un éventuel BOM,
-      # on tente l'UTF-8, sinon on retombe sur Windows-1252.
-      UTF8_BOM = "\xEF\xBB\xBF".dup.force_encoding(Encoding::ASCII_8BIT).freeze
+      # Excel change le séparateur selon le format d'enregistrement choisi :
+      # ';' (CSV européen), tabulation (« Texte (séparateur : tabulation) »
+      # et « Texte Unicode ») ou ',' (CSV anglo-saxon). Détection sur la
+      # ligne d'en-tête, qui ne contient aucun de ces caractères dans les
+      # titres de colonnes.
+      CANDIDATE_SEPARATORS = [';', "\t", ','].freeze
+
+      def detect_separator(content)
+        first_line = content.lines.first.to_s
+        best = CANDIDATE_SEPARATORS.max_by { |sep| first_line.count(sep) }
+        first_line.count(best).zero? ? CSV_SEPARATOR : best
+      end
+
+      # Excel réenregistre souvent le fichier en ANSI (Windows-1252) au lieu
+      # d'UTF-8 (accents invalides), ou en UTF-16 via « Texte Unicode ».
+      # Détection par BOM, tentative UTF-8, puis repli sur Windows-1252.
+      UTF8_BOM     = "\xEF\xBB\xBF".dup.force_encoding(Encoding::ASCII_8BIT).freeze
+      UTF16LE_BOM  = "\xFF\xFE".dup.force_encoding(Encoding::ASCII_8BIT).freeze
+      UTF16BE_BOM  = "\xFE\xFF".dup.force_encoding(Encoding::ASCII_8BIT).freeze
 
       def decode_csv(raw)
+        if raw.start_with?(UTF16LE_BOM)
+          return raw.byteslice(2, raw.bytesize - 2)
+                    .force_encoding(Encoding::UTF_16LE)
+                    .encode(Encoding::UTF_8,
+                            invalid: :replace, undef: :replace, replace: '?')
+        end
+        if raw.start_with?(UTF16BE_BOM)
+          return raw.byteslice(2, raw.bytesize - 2)
+                    .force_encoding(Encoding::UTF_16BE)
+                    .encode(Encoding::UTF_8,
+                            invalid: :replace, undef: :replace, replace: '?')
+        end
+
         body = raw.start_with?(UTF8_BOM) ? raw.byteslice(3, raw.bytesize - 3) : raw
         utf8 = body.dup.force_encoding(Encoding::UTF_8)
         return utf8 if utf8.valid_encoding?

@@ -25,9 +25,10 @@ charge des `LayerFolder`).
    > au plugin de retrouver chaque élément dans le modèle. Ne supprimez et
    > n'ajoutez aucune ligne.
 
-   L'import accepte les fichiers réenregistrés par Excel aussi bien en
-   UTF-8 qu'en ANSI (Windows-1252), le format par défaut d'Excel pour
-   « CSV (séparateur : point-virgule) ».
+   L'import accepte les fichiers réenregistrés par Excel quel que soit le
+   format choisi : encodage UTF-8, ANSI (Windows-1252) ou UTF-16
+   (« Texte Unicode »), et séparateur point-virgule, tabulation ou virgule
+   (détectés automatiquement).
 
 3. **Importer** — Le plugin relit le fichier et applique les nouveaux noms.
    La structure des dossiers et les assignations géométriques sont
@@ -57,9 +58,10 @@ charge des `LayerFolder`).
   supprimés automatiquement.
 - **Annulation utilisateur** : fermer une boîte de dialogue de fichier
   interrompt l'action silencieusement.
-- **Encodage** : détection automatique UTF-8 (avec ou sans BOM) ou ANSI
-  (Windows-1252) à l'import — compatible avec un fichier réenregistré
-  par Excel sans option particulière.
+- **Encodage et séparateur** : détection automatique à l'import de
+  l'encodage (UTF-8 avec ou sans BOM, ANSI/Windows-1252, UTF-16) et du
+  séparateur (`;`, tabulation ou `,`) — compatible avec un fichier
+  réenregistré par Excel sans option particulière.
 
 ## Structure du dépôt
 
