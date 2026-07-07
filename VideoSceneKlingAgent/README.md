@@ -13,7 +13,12 @@ et en mode **Multi-Shot** — afin de recréer une scène équivalente, avec des
    - mouvements détaillés des acteurs (chronologie, gestes, direction, vitesse, expressions) ;
    - environnement (décor, lumière, heure, météo/saison, accessoires) ;
    - caméra (cadrage, angle, mouvement).
-4. **Génère les prompts Kling en anglais** :
+4. **Construit une fiche de cohérence des personnages** (si la vidéo a plus d'une
+   scène) : un aperçu de toute la vidéo est analysé pour identifier les personnages
+   récurrents et figer, pour chacun, une description anglaise fixe — réutilisée mot
+   pour mot dans le prompt de chaque scène où ils apparaissent, afin qu'ils restent
+   visuellement identiques d'un plan Kling à l'autre.
+5. **Génère les prompts Kling en anglais**, pour chaque scène de 15 s de la vidéo :
    - un prompt single-shot optimisé (structure : sujet + mouvement + environnement +
      lumière + caméra + style) ;
    - un negative prompt ;
@@ -21,8 +26,20 @@ et en mode **Multi-Shot** — afin de recréer une scène équivalente, avec des
      décor, même lumière — seuls le cadrage et l'action changent) ;
    - 3–4 **variations** : mêmes acteurs et mêmes mouvements, mais nouvel
      environnement, autre saison, autre heure ou autre style visuel.
-5. **Produit un rapport** : `kling_prompts.md` (lisible, prompts prêts à coller
-   dans Kling) et `kling_prompts.json` (données structurées).
+6. **Produit un fichier par scène** — chaque scène = une génération Kling distincte :
+   ```
+   kling_report/
+   ├── index.md            ← sommaire avec liens vers chaque scène
+   ├── characters.json     ← fiche personnages (si plusieurs scènes)
+   ├── scene_01.json        scene_01.md
+   ├── scene_02.json        scene_02.md
+   └── ...
+   ```
+
+Une vidéo de 2 minutes donne ainsi ~8 scènes de 15 s → 8 paires de fichiers
+`scene_XX.json` / `scene_XX.md`, chacune prête à être donnée telle quelle à Kling
+ou à un pipeline d'automatisation — et les mêmes personnages décrits à l'identique
+dans chacune.
 
 ## Installation
 
@@ -54,20 +71,22 @@ python video_scene_agent.py ma_video.mp4 --max-scenes 2
 python video_scene_agent.py ma_video.mp4 \
     --scene-duration 15 \        # durée d'une scène (s)
     --frames-per-scene 4 \       # images clés analysées par scène
+    --bible-frames 12 \          # nb max de scènes échantillonnées pour la fiche personnages
+    --no-character-bible \       # désactive la cohérence des personnages entre scènes
     --output mon_rapport/        # dossier de sortie
 ```
 
 > Pour une vidéo YouTube, téléchargez-la d'abord avec `yt-dlp` puis passez le
 > fichier local à l'agent : `yt-dlp -f mp4 <url> -o clip.mp4`.
 
-## Exemple de sortie (extrait)
+## Exemple de sortie (extrait de `scene_02.md`)
 
 ````markdown
-## Scène 2 — 15s → 30s
+# Scène 2 — 15s → 30s
 
 **Résumé :** Une femme en manteau rouge traverse une place pavée sous la pluie…
 
-### 🎬 Prompt Kling (single shot)
+## 🎬 Prompt Kling (single shot)
 ```text
 A woman in a long red wool coat walks briskly across a rain-soaked cobblestone
 plaza, clutching a black umbrella that tilts against the wind; she glances over
@@ -76,9 +95,31 @@ the wet stones, light drizzle, dusk atmosphere. Medium tracking shot, camera
 dollies alongside her at eye level. Cinematic, 35mm film, shallow depth of field.
 ```
 
-### 🌍 Variations
+## 🌍 Variations
 **Version hiver** — même chorégraphie, place enneigée au crépuscule…
 ````
+
+Le fichier `scene_02.json` correspondant contient les mêmes données en format
+structuré (utile pour scripter l'envoi à Kling ou à une autre automatisation).
+
+## Cohérence des personnages entre scènes
+
+Pour une vidéo de plusieurs scènes, l'agent construit d'abord une **fiche
+personnages** (un appel API supplémentaire, sur une image par scène) qui identifie
+chaque personnage récurrent et fige sa description en anglais :
+
+```markdown
+## 🧑 Personnages identifiés (cohérence inter-scènes)
+
+- **homme au manteau bleu marine** (`char_1`) — A tall man in his late 30s with
+  short dark hair and stubble, wearing a navy wool peacoat, dark jeans and brown
+  leather boots.
+```
+
+Cette description est ensuite réutilisée mot pour mot dans le prompt Kling de
+chaque scène où ce personnage apparaît (single-shot, Multi-Shot et variations),
+pour qu'il reste visuellement le même d'un plan généré à l'autre. Désactivable
+avec `--no-character-bible` si vous préférez une analyse indépendante par scène.
 
 ## Utilisation comme sous-agent Claude Code
 
